@@ -1,5 +1,4 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Best Reminder</string>
-    <string name="affirmation">I am the best.</string>
+    <string name="app_name">Math Reminder</string>
 </resources>

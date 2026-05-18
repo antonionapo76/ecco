@@ -12,7 +12,7 @@ final class MathChallenge {
     final int correctAnswer;
     final int[] answers;
 
-    private MathChallenge(String question, int correctAnswer, int[] answers) {
+    MathChallenge(String question, int correctAnswer, int[] answers) {
         this.question = question;
         this.correctAnswer = correctAnswer;
         this.answers = answers;

@@ -11,14 +11,13 @@ import android.content.pm.PackageManager;
 import android.os.Build;
 
 final class NotificationHelper {
-    private static final String CHANNEL_ID = "daily_affirmation";
+    private static final String CHANNEL_ID = "math_challenges";
     private static final int NOTIFICATION_ID = 1208;
-    private static final int ANSWER_REQUEST_CODE_BASE = 1300;
 
     private NotificationHelper() {
     }
 
-    static boolean showDailyAffirmation(Context context) {
+    static boolean showMathReminder(Context context) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
                 && context.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS)
                 != PackageManager.PERMISSION_GRANTED) {
@@ -37,24 +36,6 @@ final class NotificationHelper {
         return true;
     }
 
-    static boolean showAnswerResult(Context context, boolean isCorrect, int correctAnswer) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
-                && context.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS)
-                != PackageManager.PERMISSION_GRANTED) {
-            return false;
-        }
-
-        NotificationManager notificationManager =
-                (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
-        if (notificationManager == null) {
-            return false;
-        }
-
-        createNotificationChannel(notificationManager);
-        notificationManager.notify(NOTIFICATION_ID, buildResultNotification(context, isCorrect, correctAnswer));
-        return true;
-    }
-
     private static void createNotificationChannel(NotificationManager notificationManager) {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
             return;
@@ -62,17 +43,20 @@ final class NotificationHelper {
 
         NotificationChannel channel = new NotificationChannel(
                 CHANNEL_ID,
-                "Daily affirmation",
+                "Math challenges",
                 NotificationManager.IMPORTANCE_DEFAULT
         );
-        channel.setDescription("Math reminders that you are the best.");
+        channel.setDescription("Scheduled math challenge reminders.");
         notificationManager.createNotificationChannel(channel);
     }
 
     @SuppressWarnings("deprecation")
     private static Notification buildChallengeNotification(Context context, MathChallenge challenge) {
-        Intent launchIntent = new Intent(context, MainActivity.class)
-                .setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+        Intent launchIntent = new Intent(context, ChallengeActivity.class)
+                .setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK)
+                .putExtra(ChallengeActivity.EXTRA_QUESTION, challenge.question)
+                .putExtra(ChallengeActivity.EXTRA_CORRECT_ANSWER, challenge.correctAnswer)
+                .putExtra(ChallengeActivity.EXTRA_ANSWERS, challenge.answers);
         PendingIntent contentIntent = PendingIntent.getActivity(
                 context,
                 0,
@@ -89,76 +73,14 @@ final class NotificationHelper {
 
         builder
                 .setSmallIcon(R.drawable.ic_stat_best)
-                .setContentTitle("I am the best!")
-                .setContentText(challenge.question)
+                .setContentTitle("Math challenge ready")
+                .setContentText("Tap to answer the question.")
                 .setStyle(new Notification.BigTextStyle()
-                        .bigText("I am the best. Solve this: " + challenge.question))
+                        .bigText("Tap this notification to open your math question."))
                 .setContentIntent(contentIntent)
                 .setAutoCancel(true)
                 .setCategory(Notification.CATEGORY_REMINDER);
 
-        for (int i = 0; i < challenge.answers.length; i++) {
-            int answer = challenge.answers[i];
-            builder.addAction(
-                    R.drawable.ic_stat_best,
-                    String.valueOf(answer),
-                    createAnswerIntent(context, i, answer, challenge.correctAnswer)
-            );
-        }
-
         return builder.build();
-    }
-
-    @SuppressWarnings("deprecation")
-    private static Notification buildResultNotification(Context context, boolean isCorrect, int correctAnswer) {
-        Intent launchIntent = new Intent(context, MainActivity.class)
-                .setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
-        PendingIntent contentIntent = PendingIntent.getActivity(
-                context,
-                0,
-                launchIntent,
-                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
-        );
-
-        Notification.Builder builder;
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            builder = new Notification.Builder(context, CHANNEL_ID);
-        } else {
-            builder = new Notification.Builder(context);
-        }
-
-        String title = isCorrect ? "Congratulations!" : "Try again next time";
-        String message = isCorrect
-                ? "Correct answer. You are the best!"
-                : "The correct answer was " + correctAnswer + ". You are still the best.";
-
-        return builder
-                .setSmallIcon(R.drawable.ic_stat_best)
-                .setContentTitle(title)
-                .setContentText(message)
-                .setStyle(new Notification.BigTextStyle().bigText(message))
-                .setContentIntent(contentIntent)
-                .setAutoCancel(true)
-                .setCategory(Notification.CATEGORY_REMINDER)
-                .build();
-    }
-
-    private static PendingIntent createAnswerIntent(
-            Context context,
-            int answerIndex,
-            int selectedAnswer,
-            int correctAnswer
-    ) {
-        Intent answerIntent = new Intent(context, MathAnswerReceiver.class)
-                .setAction(MathAnswerReceiver.ACTION_ANSWER)
-                .putExtra(MathAnswerReceiver.EXTRA_SELECTED_ANSWER, selectedAnswer)
-                .putExtra(MathAnswerReceiver.EXTRA_CORRECT_ANSWER, correctAnswer);
-
-        return PendingIntent.getBroadcast(
-                context,
-                ANSWER_REQUEST_CODE_BASE + answerIndex,
-                answerIntent,
-                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
-        );
     }
 }

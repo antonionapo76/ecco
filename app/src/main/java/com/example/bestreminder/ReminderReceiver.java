@@ -7,7 +7,7 @@ import android.content.Intent;
 public class ReminderReceiver extends BroadcastReceiver {
     @Override
     public void onReceive(Context context, Intent intent) {
-        NotificationHelper.showDailyAffirmation(context);
+        NotificationHelper.showMathReminder(context);
         ReminderScheduler.rescheduleIfEnabled(context);
     }
 }

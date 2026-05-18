@@ -33,15 +33,16 @@ final class ReminderScheduler {
     }
 
     static void scheduleReminder(Context context, int hourOfDay, int minute, int intervalMinutes) {
+        int normalizedIntervalMinutes = normalizeIntervalMinutes(intervalMinutes);
         getPreferences(context)
                 .edit()
                 .putBoolean(KEY_ENABLED, true)
                 .putInt(KEY_HOUR, hourOfDay)
                 .putInt(KEY_MINUTE, minute)
-                .putInt(KEY_INTERVAL_MINUTES, normalizeIntervalMinutes(intervalMinutes))
+                .putInt(KEY_INTERVAL_MINUTES, normalizedIntervalMinutes)
                 .apply();
 
-        scheduleAtMillis(context, nextStartTriggerMillis(hourOfDay, minute));
+        scheduleAtMillis(context, nextStartTriggerMillis(hourOfDay, minute, normalizedIntervalMinutes));
     }
 
     static void rescheduleIfEnabled(Context context) {
@@ -94,6 +95,7 @@ final class ReminderScheduler {
 
         AlarmManager alarmManager = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
         if (alarmManager != null) {
+            alarmManager.cancel(pendingIntent);
             alarmManager.setAlarmClock(
                     new AlarmManager.AlarmClockInfo(triggerAtMillis, createOpenAppIntent(context)),
                     pendingIntent
@@ -112,7 +114,7 @@ final class ReminderScheduler {
         );
     }
 
-    private static long nextStartTriggerMillis(int hourOfDay, int minute) {
+    private static long nextStartTriggerMillis(int hourOfDay, int minute, int intervalMinutes) {
         java.util.Calendar calendar = java.util.Calendar.getInstance();
         calendar.set(java.util.Calendar.HOUR_OF_DAY, hourOfDay);
         calendar.set(java.util.Calendar.MINUTE, minute);
@@ -120,7 +122,7 @@ final class ReminderScheduler {
         calendar.set(java.util.Calendar.MILLISECOND, 0);
 
         if (calendar.getTimeInMillis() <= System.currentTimeMillis()) {
-            calendar.add(java.util.Calendar.DAY_OF_YEAR, 1);
+            return System.currentTimeMillis() + intervalMinutes * 60_000L;
         }
 
         return calendar.getTimeInMillis();

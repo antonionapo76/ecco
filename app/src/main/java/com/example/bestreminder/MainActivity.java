@@ -67,7 +67,7 @@ public class MainActivity extends Activity {
         ));
 
         TextView title = new TextView(this);
-        title.setText("I am the best.");
+        title.setText("Math Reminder");
         title.setTextColor(Color.rgb(30, 64, 175));
         title.setTextSize(34);
         title.setGravity(Gravity.CENTER);
@@ -75,7 +75,7 @@ public class MainActivity extends Activity {
         root.addView(title, matchWrapLayout());
 
         TextView subtitle = new TextView(this);
-        subtitle.setText("Your phone will remind you every day.");
+        subtitle.setText("Schedule math questions and answer them from the notification.");
         subtitle.setTextColor(Color.rgb(71, 85, 105));
         subtitle.setTextSize(18);
         subtitle.setGravity(Gravity.CENTER);
@@ -162,7 +162,7 @@ public class MainActivity extends Activity {
         if (!isNotificationPermissionGranted()) {
             statusText.setText(String.format(
                     Locale.getDefault(),
-                    "Math reminder starts at %s, then repeats every %s. Allow notifications so it can appear.",
+                    "Math reminder starts at %s, then repeats every %s. If that time already passed today, the next reminder starts after one interval. Allow notifications so it can appear.",
                     reminderTime,
                     reminderInterval
             ));
@@ -171,15 +171,15 @@ public class MainActivity extends Activity {
 
         statusText.setText(String.format(
                 Locale.getDefault(),
-                "Math reminder starts at %s, then repeats every %s. Your phone may show an alarm icon.",
+                "Math reminder starts at %s, then repeats every %s. If that time already passed today, the next reminder starts after one interval. Your phone may show an alarm icon.",
                 reminderTime,
                 reminderInterval
         ));
     }
 
     private void sendTestNotification() {
-        if (NotificationHelper.showDailyAffirmation(this)) {
-            statusText.setText("Test math notification sent. Press the correct answer button in the notification.");
+        if (NotificationHelper.showMathReminder(this)) {
+            statusText.setText("Test math notification sent. Tap the notification to answer in the app.");
         } else {
             updateStatusText();
         }

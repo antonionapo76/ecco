@@ -20,13 +20,12 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-
-        <receiver
-            android:name=".ReminderReceiver"
+        <activity
+            android:name=".ChallengeActivity"
             android:exported="false" />
 
         <receiver
-            android:name=".MathAnswerReceiver"
+            android:name=".ReminderReceiver"
             android:exported="false" />
 
         <receiver
