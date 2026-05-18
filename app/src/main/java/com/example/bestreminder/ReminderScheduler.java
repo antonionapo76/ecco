@@ -11,12 +11,15 @@ import java.util.Locale;
 final class ReminderScheduler {
     static final int DEFAULT_HOUR = 9;
     static final int DEFAULT_MINUTE = 0;
+    static final int DEFAULT_INTERVAL_MINUTES = 60;
+    static final int[] INTERVAL_OPTIONS_MINUTES = new int[]{5, 10, 30, 60};
 
     private static final String ACTION_SHOW_REMINDER = "com.example.bestreminder.SHOW_REMINDER";
     private static final String PREFS_NAME = "best_reminder";
     private static final String KEY_ENABLED = "enabled";
     private static final String KEY_HOUR = "hour";
     private static final String KEY_MINUTE = "minute";
+    private static final String KEY_INTERVAL_MINUTES = "interval_minutes";
     private static final int REQUEST_CODE = 1207;
     private static final int OPEN_APP_REQUEST_CODE = 1209;
 
@@ -25,24 +28,25 @@ final class ReminderScheduler {
 
     static void ensureDefaultReminder(Context context) {
         if (!isReminderSet(context)) {
-            scheduleDailyReminder(context, DEFAULT_HOUR, DEFAULT_MINUTE);
+            scheduleReminder(context, DEFAULT_HOUR, DEFAULT_MINUTE, DEFAULT_INTERVAL_MINUTES);
         }
     }
 
-    static void scheduleDailyReminder(Context context, int hourOfDay, int minute) {
+    static void scheduleReminder(Context context, int hourOfDay, int minute, int intervalMinutes) {
         getPreferences(context)
                 .edit()
                 .putBoolean(KEY_ENABLED, true)
                 .putInt(KEY_HOUR, hourOfDay)
                 .putInt(KEY_MINUTE, minute)
+                .putInt(KEY_INTERVAL_MINUTES, normalizeIntervalMinutes(intervalMinutes))
                 .apply();
 
-        scheduleNextReminder(context, hourOfDay, minute);
+        scheduleAtMillis(context, nextStartTriggerMillis(hourOfDay, minute));
     }
 
     static void rescheduleIfEnabled(Context context) {
         if (isReminderSet(context)) {
-            scheduleNextReminder(context, getReminderHour(context), getReminderMinute(context));
+            scheduleAtMillis(context, System.currentTimeMillis() + getReminderIntervalMinutes(context) * 60_000L);
         }
     }
 
@@ -58,6 +62,12 @@ final class ReminderScheduler {
         return getPreferences(context).getInt(KEY_MINUTE, DEFAULT_MINUTE);
     }
 
+    static int getReminderIntervalMinutes(Context context) {
+        return normalizeIntervalMinutes(
+                getPreferences(context).getInt(KEY_INTERVAL_MINUTES, DEFAULT_INTERVAL_MINUTES)
+        );
+    }
+
     static String formatTime(int hourOfDay, int minute) {
         boolean isAfternoon = hourOfDay >= 12;
         int hour12 = hourOfDay % 12;
@@ -67,7 +77,11 @@ final class ReminderScheduler {
         return String.format(Locale.getDefault(), "%d:%02d %s", hour12, minute, isAfternoon ? "PM" : "AM");
     }
 
-    private static void scheduleNextReminder(Context context, int hourOfDay, int minute) {
+    static String formatInterval(int intervalMinutes) {
+        return intervalMinutes == 60 ? "1 hour" : intervalMinutes + " minutes";
+    }
+
+    private static void scheduleAtMillis(Context context, long triggerAtMillis) {
         Intent intent = new Intent(context, ReminderReceiver.class)
                 .setAction(ACTION_SHOW_REMINDER);
 
@@ -80,7 +94,6 @@ final class ReminderScheduler {
 
         AlarmManager alarmManager = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
         if (alarmManager != null) {
-            long triggerAtMillis = nextTriggerMillis(hourOfDay, minute);
             alarmManager.setAlarmClock(
                     new AlarmManager.AlarmClockInfo(triggerAtMillis, createOpenAppIntent(context)),
                     pendingIntent
@@ -99,7 +112,7 @@ final class ReminderScheduler {
         );
     }
 
-    private static long nextTriggerMillis(int hourOfDay, int minute) {
+    private static long nextStartTriggerMillis(int hourOfDay, int minute) {
         java.util.Calendar calendar = java.util.Calendar.getInstance();
         calendar.set(java.util.Calendar.HOUR_OF_DAY, hourOfDay);
         calendar.set(java.util.Calendar.MINUTE, minute);
@@ -111,6 +124,16 @@ final class ReminderScheduler {
         }
 
         return calendar.getTimeInMillis();
+    }
+
+    private static int normalizeIntervalMinutes(int intervalMinutes) {
+        for (int option : INTERVAL_OPTIONS_MINUTES) {
+            if (option == intervalMinutes) {
+                return option;
+            }
+        }
+
+        return DEFAULT_INTERVAL_MINUTES;
     }
 
     private static SharedPreferences getPreferences(Context context) {

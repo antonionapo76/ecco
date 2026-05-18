@@ -10,6 +10,9 @@ import android.view.Gravity;
 import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.LinearLayout;
+import android.widget.RadioButton;
+import android.widget.RadioGroup;
+import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.TimePicker;
 
@@ -20,6 +23,7 @@ public class MainActivity extends Activity {
 
     private TextView statusText;
     private TimePicker timePicker;
+    private RadioGroup intervalGroup;
     private boolean sendTestAfterPermission;
 
     @Override
@@ -46,14 +50,21 @@ public class MainActivity extends Activity {
         }
     }
 
-    private LinearLayout createContentView() {
+    private ScrollView createContentView() {
         int horizontalPadding = dp(24);
+
+        ScrollView scrollView = new ScrollView(this);
+        scrollView.setFillViewport(true);
+        scrollView.setBackgroundColor(Color.WHITE);
 
         LinearLayout root = new LinearLayout(this);
         root.setOrientation(LinearLayout.VERTICAL);
         root.setGravity(Gravity.CENTER_HORIZONTAL);
         root.setPadding(horizontalPadding, dp(36), horizontalPadding, dp(24));
-        root.setBackgroundColor(Color.WHITE);
+        scrollView.addView(root, new ScrollView.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT
+        ));
 
         TextView title = new TextView(this);
         title.setText("I am the best.");
@@ -78,12 +89,30 @@ public class MainActivity extends Activity {
         timePicker.setMinute(ReminderScheduler.getReminderMinute(this));
         root.addView(timePicker, matchWrapLayout());
 
+        TextView intervalTitle = new TextView(this);
+        intervalTitle.setText("Repeat math every:");
+        intervalTitle.setTextColor(Color.rgb(30, 64, 175));
+        intervalTitle.setTextSize(18);
+        intervalTitle.setGravity(Gravity.CENTER);
+        intervalTitle.setTypeface(intervalTitle.getTypeface(), android.graphics.Typeface.BOLD);
+        LinearLayout.LayoutParams intervalTitleParams = matchWrapLayout();
+        intervalTitleParams.setMargins(0, dp(20), 0, dp(8));
+        root.addView(intervalTitle, intervalTitleParams);
+
+        intervalGroup = createIntervalGroup();
+        root.addView(intervalGroup, matchWrapLayout());
+
         Button saveButton = new Button(this);
-        saveButton.setText("Save daily reminder");
+        saveButton.setText("Save math reminder");
         saveButton.setAllCaps(false);
         saveButton.setTextSize(18);
         saveButton.setOnClickListener(view -> {
-            ReminderScheduler.scheduleDailyReminder(this, timePicker.getHour(), timePicker.getMinute());
+            ReminderScheduler.scheduleReminder(
+                    this,
+                    timePicker.getHour(),
+                    timePicker.getMinute(),
+                    getSelectedIntervalMinutes()
+            );
             requestNotificationPermissionIfNeeded();
             updateStatusText();
         });
@@ -114,7 +143,7 @@ public class MainActivity extends Activity {
         statusText.setGravity(Gravity.CENTER);
         root.addView(statusText, matchWrapLayout());
 
-        return root;
+        return scrollView;
     }
 
     private void updateStatusText() {
@@ -126,26 +155,31 @@ public class MainActivity extends Activity {
                 ReminderScheduler.getReminderHour(this),
                 ReminderScheduler.getReminderMinute(this)
         );
+        String reminderInterval = ReminderScheduler.formatInterval(
+                ReminderScheduler.getReminderIntervalMinutes(this)
+        );
 
         if (!isNotificationPermissionGranted()) {
             statusText.setText(String.format(
                     Locale.getDefault(),
-                    "Reminder set for %s. Allow notifications so the reminder can appear.",
-                    reminderTime
+                    "Math reminder starts at %s, then repeats every %s. Allow notifications so it can appear.",
+                    reminderTime,
+                    reminderInterval
             ));
             return;
         }
 
         statusText.setText(String.format(
                 Locale.getDefault(),
-                "Exact reminder set for %s every day. Your phone may show an alarm icon for this reminder.",
-                reminderTime
+                "Math reminder starts at %s, then repeats every %s. Your phone may show an alarm icon.",
+                reminderTime,
+                reminderInterval
         ));
     }
 
     private void sendTestNotification() {
         if (NotificationHelper.showDailyAffirmation(this)) {
-            statusText.setText("Test notification sent. If you do not see it, check notification settings for Best Reminder.");
+            statusText.setText("Test math notification sent. Press the correct answer button in the notification.");
         } else {
             updateStatusText();
         }
@@ -163,6 +197,39 @@ public class MainActivity extends Activity {
     private boolean isNotificationPermissionGranted() {
         return Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU
                 || checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED;
+    }
+
+    private RadioGroup createIntervalGroup() {
+        RadioGroup group = new RadioGroup(this);
+        group.setOrientation(RadioGroup.VERTICAL);
+        group.setGravity(Gravity.CENTER_HORIZONTAL);
+
+        int currentInterval = ReminderScheduler.getReminderIntervalMinutes(this);
+        for (int intervalMinutes : ReminderScheduler.INTERVAL_OPTIONS_MINUTES) {
+            RadioButton button = new RadioButton(this);
+            button.setId(intervalMinutes);
+            button.setText("Every " + ReminderScheduler.formatInterval(intervalMinutes));
+            button.setTextColor(Color.rgb(51, 65, 85));
+            button.setTextSize(16);
+            group.addView(button, new RadioGroup.LayoutParams(
+                    ViewGroup.LayoutParams.WRAP_CONTENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT
+            ));
+        }
+        group.check(currentInterval);
+
+        return group;
+    }
+
+    private int getSelectedIntervalMinutes() {
+        int checkedId = intervalGroup.getCheckedRadioButtonId();
+        for (int intervalMinutes : ReminderScheduler.INTERVAL_OPTIONS_MINUTES) {
+            if (checkedId == intervalMinutes) {
+                return intervalMinutes;
+            }
+        }
+
+        return ReminderScheduler.DEFAULT_INTERVAL_MINUTES;
     }
 
     private LinearLayout.LayoutParams matchWrapLayout() {
