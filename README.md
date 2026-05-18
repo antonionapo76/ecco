@@ -12,6 +12,12 @@ The app schedules a daily Android notification, lets you pick the reminder time,
 2. Let Android Studio sync the Gradle project.
 3. Run the `app` configuration on an emulator or Android device.
 
+You can also build from a machine with the Android SDK installed:
+
+```sh
+./gradlew assembleDebug
+```
+
 The project uses only platform Android APIs, so there are no third-party runtime dependencies.
 
 ## Behavior
