@@ -47,6 +47,7 @@ public class ReminderReceiver extends BroadcastReceiver {
         notificationManager.createNotificationChannel(channel);
     }
 
+    @SuppressWarnings("deprecation")
     private Notification buildNotification(Context context) {
         Intent launchIntent = new Intent(context, MainActivity.class)
                 .setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
@@ -73,7 +74,6 @@ public class ReminderReceiver extends BroadcastReceiver {
                 .setContentIntent(contentIntent)
                 .setAutoCancel(true)
                 .setCategory(Notification.CATEGORY_REMINDER)
-                .setPriority(Notification.PRIORITY_DEFAULT)
                 .build();
     }
 }
