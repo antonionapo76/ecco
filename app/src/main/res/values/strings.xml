@@ -1,0 +1,13 @@
+<resources>
+    <string name="app_name">Best Reminder</string>
+    <string name="main_message">You are the best.</string>
+    <string name="reminder_status_on">Daily reminder is enabled.</string>
+    <string name="reminder_status_off">Daily reminder is not enabled yet.</string>
+    <string name="enable_reminder_button">Enable daily reminder</string>
+    <string name="reminder_enabled_toast">Your daily reminder is active.</string>
+    <string name="permission_denied_msg">Notifications are required for daily reminders.</string>
+    <string name="notification_channel_name">Daily motivation</string>
+    <string name="notification_channel_description">Reminds you that you are the best every day.</string>
+    <string name="reminder_notification_title">Daily boost</string>
+    <string name="reminder_notification_text">You are the best.</string>
+</resources>
