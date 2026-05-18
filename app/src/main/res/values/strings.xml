@@ -1,0 +1,10 @@
+<resources>
+    <string name="app_name">Daily Best Reminder</string>
+    <string name="title_message">You are the best</string>
+    <string name="subtitle_message">Tap the button below and this app will remind you every day.</string>
+    <string name="enable_button_label">Enable daily reminder</string>
+    <string name="default_status_message">Daily reminder is not enabled yet.</string>
+    <string name="reminder_enabled_message">Daily reminder is enabled for 9:00 AM.</string>
+    <string name="permission_required_message">Notification permission is needed to send reminders.</string>
+    <string name="reminder_enabled_toast">Your daily confidence reminder is now on.</string>
+</resources>
