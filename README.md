@@ -26,4 +26,5 @@ The project uses only platform Android APIs, so there are no third-party runtime
 - The time picker lets you save a different daily reminder time.
 - The test button sends a notification immediately so you can confirm phone permissions are correct.
 - Android 13 and newer require notification permission; the app requests it when opened.
-- Android may still adjust background reminders to save battery, so the daily reminder can arrive near the selected time rather than exactly on the minute.
+- Daily reminders use Android's exact alarm-clock scheduling so they can appear at the selected minute.
+- Because the reminder is exact, Android may show a small alarm icon while the reminder is scheduled.

@@ -138,7 +138,7 @@ public class MainActivity extends Activity {
 
         statusText.setText(String.format(
                 Locale.getDefault(),
-                "Reminder set for %s every day.",
+                "Exact reminder set for %s every day. Your phone may show an alarm icon for this reminder.",
                 reminderTime
         ));
     }

@@ -5,7 +5,6 @@ import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
-import android.os.Build;
 
 import java.util.Locale;
 
@@ -19,6 +18,7 @@ final class ReminderScheduler {
     private static final String KEY_HOUR = "hour";
     private static final String KEY_MINUTE = "minute";
     private static final int REQUEST_CODE = 1207;
+    private static final int OPEN_APP_REQUEST_CODE = 1209;
 
     private ReminderScheduler() {
     }
@@ -81,12 +81,22 @@ final class ReminderScheduler {
         AlarmManager alarmManager = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
         if (alarmManager != null) {
             long triggerAtMillis = nextTriggerMillis(hourOfDay, minute);
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                alarmManager.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAtMillis, pendingIntent);
-            } else {
-                alarmManager.set(AlarmManager.RTC_WAKEUP, triggerAtMillis, pendingIntent);
-            }
+            alarmManager.setAlarmClock(
+                    new AlarmManager.AlarmClockInfo(triggerAtMillis, createOpenAppIntent(context)),
+                    pendingIntent
+            );
         }
+    }
+
+    private static PendingIntent createOpenAppIntent(Context context) {
+        Intent openAppIntent = new Intent(context, MainActivity.class)
+                .setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+        return PendingIntent.getActivity(
+                context,
+                OPEN_APP_REQUEST_CODE,
+                openAppIntent,
+                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
+        );
     }
 
     private static long nextTriggerMillis(int hourOfDay, int minute) {
