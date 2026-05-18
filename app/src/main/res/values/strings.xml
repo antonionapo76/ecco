@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Best Reminder</string>
+    <string name="notification_title">You are the best</string>
+    <string name="notification_channel_name">Daily affirmations</string>
+    <string name="notification_channel_description">A daily reminder that you are the best.</string>
+</resources>
