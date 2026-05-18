@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Best Reminder</string>
+    <string name="title_text">Daily best reminder</string>
+    <string name="subtitle_text">A tiny app that sends you one daily notification with a confidence boost.</string>
+    <string name="hero_message">You are the best.</string>
+    <string name="selected_time_label">Reminder time</string>
+    <string name="selected_time_value">Every day at %1$s</string>
+    <string name="choose_time_button">Choose reminder time</string>
+    <string name="status_label">Reminder status</string>
+    <string name="status_enabled">On — you will get your daily reminder at %1$s.</string>
+    <string name="status_disabled">Off — tap the button below to start your daily reminder.</string>
+    <string name="turn_on_button">Turn on daily reminder</string>
+    <string name="turn_off_button">Turn off daily reminder</string>
+    <string name="helper_text">Tip: if notifications are off, Android may ask for permission the first time you enable reminders.</string>
+    <string name="notification_title">Daily reminder</string>
+    <string name="notification_text">You are the best.</string>
+    <string name="notification_channel_name">Daily best reminders</string>
+    <string name="notification_channel_description">Shows one encouraging reminder every day.</string>
+    <string name="notifications_permission_denied">Notification permission was denied, so the reminder could not be enabled.</string>
+    <string name="time_picker_title">Pick your daily reminder time</string>
+</resources>

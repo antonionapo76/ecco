@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="background">#FFFDF7</color>
+    <color name="panelBackground">#FFFFF0</color>
+    <color name="iconBackground">#FFF1B3</color>
+    <color name="titleText">#202124</color>
+    <color name="bodyText">#5F6368</color>
+</resources>
