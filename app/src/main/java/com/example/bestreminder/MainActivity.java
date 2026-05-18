@@ -20,6 +20,7 @@ public class MainActivity extends Activity {
 
     private TextView statusText;
     private TimePicker timePicker;
+    private boolean sendTestAfterPermission;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -35,6 +36,12 @@ public class MainActivity extends Activity {
     public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
         if (requestCode == NOTIFICATION_PERMISSION_REQUEST) {
+            if (sendTestAfterPermission && isNotificationPermissionGranted()) {
+                sendTestAfterPermission = false;
+                sendTestNotification();
+                return;
+            }
+            sendTestAfterPermission = false;
             updateStatusText();
         }
     }
@@ -84,6 +91,23 @@ public class MainActivity extends Activity {
         buttonParams.setMargins(0, dp(28), 0, dp(16));
         root.addView(saveButton, buttonParams);
 
+        Button testButton = new Button(this);
+        testButton.setText("Send test notification now");
+        testButton.setAllCaps(false);
+        testButton.setTextSize(18);
+        testButton.setOnClickListener(view -> {
+            if (!isNotificationPermissionGranted()) {
+                sendTestAfterPermission = true;
+                requestNotificationPermissionIfNeeded();
+                updateStatusText();
+                return;
+            }
+            sendTestNotification();
+        });
+        LinearLayout.LayoutParams testButtonParams = matchWrapLayout();
+        testButtonParams.setMargins(0, 0, 0, dp(16));
+        root.addView(testButton, testButtonParams);
+
         statusText = new TextView(this);
         statusText.setTextColor(Color.rgb(51, 65, 85));
         statusText.setTextSize(16);
@@ -103,8 +127,7 @@ public class MainActivity extends Activity {
                 ReminderScheduler.getReminderMinute(this)
         );
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
-                && checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+        if (!isNotificationPermissionGranted()) {
             statusText.setText(String.format(
                     Locale.getDefault(),
                     "Reminder set for %s. Allow notifications so the reminder can appear.",
@@ -120,14 +143,26 @@ public class MainActivity extends Activity {
         ));
     }
 
+    private void sendTestNotification() {
+        if (NotificationHelper.showDailyAffirmation(this)) {
+            statusText.setText("Test notification sent. If you do not see it, check notification settings for Best Reminder.");
+        } else {
+            updateStatusText();
+        }
+    }
+
     private void requestNotificationPermissionIfNeeded() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
-                && checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+        if (!isNotificationPermissionGranted()) {
             requestPermissions(
                     new String[]{Manifest.permission.POST_NOTIFICATIONS},
                     NOTIFICATION_PERMISSION_REQUEST
             );
         }
+    }
+
+    private boolean isNotificationPermissionGranted() {
+        return Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU
+                || checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED;
     }
 
     private LinearLayout.LayoutParams matchWrapLayout() {

@@ -5,6 +5,7 @@ import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.os.Build;
 
 import java.util.Locale;
 
@@ -29,37 +30,19 @@ final class ReminderScheduler {
     }
 
     static void scheduleDailyReminder(Context context, int hourOfDay, int minute) {
-        Intent intent = new Intent(context, ReminderReceiver.class)
-                .setAction(ACTION_SHOW_REMINDER);
-
-        PendingIntent pendingIntent = PendingIntent.getBroadcast(
-                context,
-                REQUEST_CODE,
-                intent,
-                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
-        );
-
-        AlarmManager alarmManager = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
-        if (alarmManager != null) {
-            alarmManager.setInexactRepeating(
-                    AlarmManager.RTC_WAKEUP,
-                    nextTriggerMillis(hourOfDay, minute),
-                    AlarmManager.INTERVAL_DAY,
-                    pendingIntent
-            );
-        }
-
         getPreferences(context)
                 .edit()
                 .putBoolean(KEY_ENABLED, true)
                 .putInt(KEY_HOUR, hourOfDay)
                 .putInt(KEY_MINUTE, minute)
                 .apply();
+
+        scheduleNextReminder(context, hourOfDay, minute);
     }
 
     static void rescheduleIfEnabled(Context context) {
         if (isReminderSet(context)) {
-            scheduleDailyReminder(context, getReminderHour(context), getReminderMinute(context));
+            scheduleNextReminder(context, getReminderHour(context), getReminderMinute(context));
         }
     }
 
@@ -82,6 +65,28 @@ final class ReminderScheduler {
             hour12 = 12;
         }
         return String.format(Locale.getDefault(), "%d:%02d %s", hour12, minute, isAfternoon ? "PM" : "AM");
+    }
+
+    private static void scheduleNextReminder(Context context, int hourOfDay, int minute) {
+        Intent intent = new Intent(context, ReminderReceiver.class)
+                .setAction(ACTION_SHOW_REMINDER);
+
+        PendingIntent pendingIntent = PendingIntent.getBroadcast(
+                context,
+                REQUEST_CODE,
+                intent,
+                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
+        );
+
+        AlarmManager alarmManager = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
+        if (alarmManager != null) {
+            long triggerAtMillis = nextTriggerMillis(hourOfDay, minute);
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                alarmManager.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAtMillis, pendingIntent);
+            } else {
+                alarmManager.set(AlarmManager.RTC_WAKEUP, triggerAtMillis, pendingIntent);
+            }
+        }
     }
 
     private static long nextTriggerMillis(int hourOfDay, int minute) {
