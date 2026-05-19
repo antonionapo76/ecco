@@ -11,11 +11,17 @@ final class Question {
 
     enum Figure {
         TRIANGLE,
+        RIGHT_TRIANGLE,
+        ISOSCELES_TRIANGLE,
+        EQUILATERAL_TRIANGLE,
         SQUARE,
         RECTANGLE,
         CIRCLE,
         TRAPEZOID,
         PARALLELOGRAM,
+        PENTAGON,
+        HEXAGON,
+        OCTAGON,
         SPHERE,
         CYLINDER,
         CUBE,
@@ -29,6 +35,8 @@ final class Question {
     final String prompt;
     final String correctAnswer;
     final List<String> answers;
+    final List<String> figureLabels;
+    final String key;
 
     Question(
             Dimension dimension,
@@ -37,7 +45,9 @@ final class Question {
             String prompt,
             String correctAnswer,
             String wrongAnswerOne,
-            String wrongAnswerTwo
+            String wrongAnswerTwo,
+            List<String> figureLabels,
+            String key
     ) {
         this.dimension = dimension;
         this.figure = figure;
@@ -45,5 +55,7 @@ final class Question {
         this.prompt = prompt;
         this.correctAnswer = correctAnswer;
         this.answers = Arrays.asList(correctAnswer, wrongAnswerOne, wrongAnswerTwo);
+        this.figureLabels = figureLabels;
+        this.key = key;
     }
 }

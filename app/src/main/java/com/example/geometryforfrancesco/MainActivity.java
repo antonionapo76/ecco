@@ -16,13 +16,17 @@ import android.widget.TextView;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Random;
+import java.util.Set;
 
 public final class MainActivity extends Activity {
     private final Handler handler = new Handler(Looper.getMainLooper());
     private final List<Button> answerButtons = new ArrayList<>();
-    private final List<Question> activeQuestions = new ArrayList<>();
+    private final Set<String> usedQuestionKeys = new HashSet<>();
+    private final Random random = new Random();
 
     private CheckBox twoDCheckBox;
     private CheckBox threeDCheckBox;
@@ -32,10 +36,11 @@ public final class MainActivity extends Activity {
     private TextView feedbackText;
     private TextView progressText;
     private Button finishButton;
+    private Question currentQuestion;
 
-    private int currentQuestionIndex;
-    private int answeredCount;
+    private int currentQuestionNumber;
     private int correctCount;
+    private int wrongTries;
     private boolean testRunning;
 
     @Override
@@ -67,7 +72,7 @@ public final class MainActivity extends Activity {
         root.addView(appTitle, matchWidthWrapHeight());
 
         TextView subtitle = new TextView(this);
-        subtitle.setText("Choose 2D areas, 3D surface areas, or both.");
+        subtitle.setText("Random area, perimeter, and formula questions. Finish when you want to stop.");
         subtitle.setTextSize(16);
         subtitle.setTextColor(Color.rgb(89, 99, 120));
         subtitle.setGravity(Gravity.CENTER);
@@ -158,28 +163,20 @@ public final class MainActivity extends Activity {
 
     private void startTest() {
         handler.removeCallbacksAndMessages(null);
-        activeQuestions.clear();
-        for (Question question : QuestionBank.allQuestions()) {
-            if ((question.dimension == Question.Dimension.TWO_D && twoDCheckBox.isChecked())
-                    || (question.dimension == Question.Dimension.THREE_D && threeDCheckBox.isChecked())) {
-                activeQuestions.add(question);
-            }
-        }
-
-        if (activeQuestions.isEmpty()) {
+        if (!twoDCheckBox.isChecked() && !threeDCheckBox.isChecked()) {
             resetQuizView("Please tick 2D, 3D, or both before starting.");
             return;
         }
 
-        Collections.shuffle(activeQuestions);
+        usedQuestionKeys.clear();
         testRunning = true;
-        currentQuestionIndex = 0;
-        answeredCount = 0;
+        currentQuestionNumber = 0;
         correctCount = 0;
+        wrongTries = 0;
         finishButton.setEnabled(true);
         twoDCheckBox.setEnabled(false);
         threeDCheckBox.setEnabled(false);
-        showCurrentQuestion();
+        showNextQuestion();
     }
 
     private void finishTest() {
@@ -191,40 +188,36 @@ public final class MainActivity extends Activity {
 
         String summary = String.format(
                 Locale.getDefault(),
-                "Test finished. Francesco scored %d out of %d.",
+                "Test finished. Francesco completed %d questions with %d wrong tries.",
                 correctCount,
-                answeredCount
+                wrongTries
         );
         resetQuizView(summary);
     }
 
-    private void showCurrentQuestion() {
-        if (currentQuestionIndex >= activeQuestions.size()) {
-            String summary = String.format(
-                    Locale.getDefault(),
-                    "Great work Francesco! Test complete: %d out of %d correct.",
-                    correctCount,
-                    answeredCount
-            );
-            resetQuizView(summary);
-            return;
-        }
+    private void showNextQuestion() {
+        currentQuestionNumber++;
+        currentQuestion = QuestionFactory.next(
+                twoDCheckBox.isChecked(),
+                threeDCheckBox.isChecked(),
+                usedQuestionKeys,
+                random
+        );
 
-        Question question = activeQuestions.get(currentQuestionIndex);
         progressText.setText(String.format(
                 Locale.getDefault(),
-                "Question %d of %d",
-                currentQuestionIndex + 1,
-                activeQuestions.size()
+                "Question %d - completed %d",
+                currentQuestionNumber,
+                correctCount
         ));
         figureView.setVisibility(View.VISIBLE);
-        figureView.setFigure(question.figure);
-        questionTitleText.setText(question.title);
-        questionPromptText.setText(question.prompt);
+        figureView.setQuestion(currentQuestion);
+        questionTitleText.setText(currentQuestion.title);
+        questionPromptText.setText(currentQuestion.prompt);
         feedbackText.setText("");
 
-        List<String> shuffledAnswers = new ArrayList<>(question.answers);
-        Collections.shuffle(shuffledAnswers);
+        List<String> shuffledAnswers = new ArrayList<>(currentQuestion.answers);
+        Collections.shuffle(shuffledAnswers, random);
         for (int i = 0; i < answerButtons.size(); i++) {
             Button answerButton = answerButtons.get(i);
             answerButton.setText(shuffledAnswers.get(i));
@@ -234,22 +227,18 @@ public final class MainActivity extends Activity {
     }
 
     private void checkAnswer(String selectedAnswer) {
-        if (!testRunning || currentQuestionIndex >= activeQuestions.size()) {
+        if (!testRunning || currentQuestion == null) {
             return;
         }
 
-        Question question = activeQuestions.get(currentQuestionIndex);
-        if (selectedAnswer.equals(question.correctAnswer)) {
-            answeredCount++;
+        if (selectedAnswer.equals(currentQuestion.correctAnswer)) {
             correctCount++;
             feedbackText.setTextColor(Color.rgb(0, 128, 78));
             feedbackText.setText("Congrats Francesco!");
             setAnswerButtonsEnabled(false);
-            handler.postDelayed(() -> {
-                currentQuestionIndex++;
-                showCurrentQuestion();
-            }, 1100);
+            handler.postDelayed(this::showNextQuestion, 1100);
         } else {
+            wrongTries++;
             feedbackText.setTextColor(Color.rgb(196, 65, 45));
             feedbackText.setText("Try again.");
         }
@@ -257,6 +246,7 @@ public final class MainActivity extends Activity {
 
     private void resetQuizView(String message) {
         testRunning = false;
+        currentQuestion = null;
         twoDCheckBox.setEnabled(true);
         threeDCheckBox.setEnabled(true);
         finishButton.setEnabled(false);

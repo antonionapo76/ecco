@@ -1,15 +1,17 @@
 # Geometry for Francesco
 
-Geometry for Francesco is a native Android quiz app for practicing geometry area questions.
+Geometry for Francesco is a native Android quiz app for practicing geometry questions.
 
 ## Features
 
 - Start and Finish buttons for the test flow
 - 2D and 3D checkboxes to choose question types
+- Randomly generated questions so tests do not repeat the same question during one run
 - Three answer buttons for every question, with only one correct answer
 - Feedback: "Congrats Francesco!" for correct answers and "Try again." for incorrect answers
 - A drawn geometry figure for every question
-- 2D area questions: triangle, square, rectangle, circle, trapezoid, parallelogram
+- 2D area and perimeter questions: multiple triangles, square, rectangle, circle, trapezoid, parallelogram, pentagon, hexagon, octagon
+- Formula questions where Francesco chooses the correct formula from three options
 - 3D surface area questions: sphere, cylinder, cube, rectangular prism, cone
 
 ## Build
