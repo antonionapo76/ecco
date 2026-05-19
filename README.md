@@ -14,7 +14,16 @@ Geometry for Francesco is a native Android quiz app for practicing geometry area
 
 ## Build
 
-Open this folder in Android Studio, or build from the command line once the Android SDK is installed:
+Open this folder in Android Studio, or build from the command line once the Android SDK is installed.
+
+Use JDK 17 to build the project. On Windows, the easiest option is Android Studio's bundled JDK:
+
+```powershell
+$env:JAVA_HOME = "C:\Program Files\Android\Android Studio\jbr"
+$env:Path = "$env:JAVA_HOME\bin;$env:Path"
+```
+
+Then run:
 
 ```bash
 ./gradlew assembleDebug
