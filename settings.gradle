@@ -14,5 +14,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "BestReminder"
+rootProject.name = "TabellinePerMichele"
 include ":app"

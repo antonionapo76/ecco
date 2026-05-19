@@ -1,53 +1,40 @@
 package com.example.bestreminder;
 
-import android.Manifest;
 import android.app.Activity;
-import android.content.pm.PackageManager;
 import android.graphics.Color;
-import android.os.Build;
 import android.os.Bundle;
 import android.view.Gravity;
 import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.LinearLayout;
-import android.widget.RadioButton;
-import android.widget.RadioGroup;
 import android.widget.ScrollView;
 import android.widget.TextView;
-import android.widget.TimePicker;
 
-import java.util.Locale;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Random;
 
 public class MainActivity extends Activity {
-    private static final int NOTIFICATION_PERMISSION_REQUEST = 42;
+    private static final Random RANDOM = new Random();
 
-    private TextView statusText;
-    private TimePicker timePicker;
-    private RadioGroup intervalGroup;
-    private boolean sendTestAfterPermission;
+    private TextView questionText;
+    private TextView feedbackText;
+    private TextView scoreText;
+    private LinearLayout answerButtonsLayout;
+    private Button startButton;
+    private Button finishButton;
+
+    private int correctAnswer;
+    private int correctCount;
+    private int attemptedCount;
+    private boolean quizRunning;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-
-        ReminderScheduler.ensureDefaultReminder(this);
         setContentView(createContentView());
-        requestNotificationPermissionIfNeeded();
-        updateStatusText();
-    }
-
-    @Override
-    public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-        if (requestCode == NOTIFICATION_PERMISSION_REQUEST) {
-            if (sendTestAfterPermission && isNotificationPermissionGranted()) {
-                sendTestAfterPermission = false;
-                sendTestNotification();
-                return;
-            }
-            sendTestAfterPermission = false;
-            updateStatusText();
-        }
+        showStoppedState();
     }
 
     private ScrollView createContentView() {
@@ -67,7 +54,7 @@ public class MainActivity extends Activity {
         ));
 
         TextView title = new TextView(this);
-        title.setText("Math Reminder");
+        title.setText("Tabelline per Michele");
         title.setTextColor(Color.rgb(30, 64, 175));
         title.setTextSize(34);
         title.setGravity(Gravity.CENTER);
@@ -75,7 +62,7 @@ public class MainActivity extends Activity {
         root.addView(title, matchWrapLayout());
 
         TextView subtitle = new TextView(this);
-        subtitle.setText("Schedule math questions and answer them from the notification.");
+        subtitle.setText("Allenati con le tabelline dal 2 al 12.");
         subtitle.setTextColor(Color.rgb(71, 85, 105));
         subtitle.setTextSize(18);
         subtitle.setGravity(Gravity.CENTER);
@@ -83,153 +70,165 @@ public class MainActivity extends Activity {
         subtitleParams.setMargins(0, dp(12), 0, dp(32));
         root.addView(subtitle, subtitleParams);
 
-        timePicker = new TimePicker(this);
-        timePicker.setIs24HourView(false);
-        timePicker.setHour(ReminderScheduler.getReminderHour(this));
-        timePicker.setMinute(ReminderScheduler.getReminderMinute(this));
-        root.addView(timePicker, matchWrapLayout());
+        scoreText = new TextView(this);
+        scoreText.setTextColor(Color.rgb(51, 65, 85));
+        scoreText.setTextSize(18);
+        scoreText.setGravity(Gravity.CENTER);
+        LinearLayout.LayoutParams scoreParams = matchWrapLayout();
+        scoreParams.setMargins(0, 0, 0, dp(24));
+        root.addView(scoreText, scoreParams);
 
-        TextView intervalTitle = new TextView(this);
-        intervalTitle.setText("Repeat math every:");
-        intervalTitle.setTextColor(Color.rgb(30, 64, 175));
-        intervalTitle.setTextSize(18);
-        intervalTitle.setGravity(Gravity.CENTER);
-        intervalTitle.setTypeface(intervalTitle.getTypeface(), android.graphics.Typeface.BOLD);
-        LinearLayout.LayoutParams intervalTitleParams = matchWrapLayout();
-        intervalTitleParams.setMargins(0, dp(20), 0, dp(8));
-        root.addView(intervalTitle, intervalTitleParams);
+        LinearLayout controlRow = new LinearLayout(this);
+        controlRow.setOrientation(LinearLayout.HORIZONTAL);
+        controlRow.setGravity(Gravity.CENTER);
+        root.addView(controlRow, matchWrapLayout());
 
-        intervalGroup = createIntervalGroup();
-        root.addView(intervalGroup, matchWrapLayout());
+        startButton = new Button(this);
+        startButton.setText("Start");
+        startButton.setAllCaps(false);
+        startButton.setTextSize(20);
+        startButton.setOnClickListener(view -> startQuiz());
+        LinearLayout.LayoutParams startParams = weightedButtonParams();
+        startParams.setMargins(0, 0, dp(8), 0);
+        controlRow.addView(startButton, startParams);
 
-        Button saveButton = new Button(this);
-        saveButton.setText("Save math reminder");
-        saveButton.setAllCaps(false);
-        saveButton.setTextSize(18);
-        saveButton.setOnClickListener(view -> {
-            ReminderScheduler.scheduleReminder(
-                    this,
-                    timePicker.getHour(),
-                    timePicker.getMinute(),
-                    getSelectedIntervalMinutes()
-            );
-            requestNotificationPermissionIfNeeded();
-            updateStatusText();
-        });
-        LinearLayout.LayoutParams buttonParams = matchWrapLayout();
-        buttonParams.setMargins(0, dp(28), 0, dp(16));
-        root.addView(saveButton, buttonParams);
+        finishButton = new Button(this);
+        finishButton.setText("Finish");
+        finishButton.setAllCaps(false);
+        finishButton.setTextSize(20);
+        finishButton.setOnClickListener(view -> finishQuiz());
+        LinearLayout.LayoutParams finishParams = weightedButtonParams();
+        finishParams.setMargins(dp(8), 0, 0, 0);
+        controlRow.addView(finishButton, finishParams);
 
-        Button testButton = new Button(this);
-        testButton.setText("Send test notification now");
-        testButton.setAllCaps(false);
-        testButton.setTextSize(18);
-        testButton.setOnClickListener(view -> {
-            if (!isNotificationPermissionGranted()) {
-                sendTestAfterPermission = true;
-                requestNotificationPermissionIfNeeded();
-                updateStatusText();
-                return;
-            }
-            sendTestNotification();
-        });
-        LinearLayout.LayoutParams testButtonParams = matchWrapLayout();
-        testButtonParams.setMargins(0, 0, 0, dp(16));
-        root.addView(testButton, testButtonParams);
+        questionText = new TextView(this);
+        questionText.setTextColor(Color.rgb(15, 23, 42));
+        questionText.setTextSize(42);
+        questionText.setGravity(Gravity.CENTER);
+        questionText.setTypeface(questionText.getTypeface(), android.graphics.Typeface.BOLD);
+        LinearLayout.LayoutParams questionParams = matchWrapLayout();
+        questionParams.setMargins(0, dp(40), 0, dp(24));
+        root.addView(questionText, questionParams);
 
-        statusText = new TextView(this);
-        statusText.setTextColor(Color.rgb(51, 65, 85));
-        statusText.setTextSize(16);
-        statusText.setGravity(Gravity.CENTER);
-        root.addView(statusText, matchWrapLayout());
+        answerButtonsLayout = new LinearLayout(this);
+        answerButtonsLayout.setOrientation(LinearLayout.VERTICAL);
+        answerButtonsLayout.setGravity(Gravity.CENTER_HORIZONTAL);
+        root.addView(answerButtonsLayout, matchWrapLayout());
+
+        feedbackText = new TextView(this);
+        feedbackText.setTextColor(Color.rgb(51, 65, 85));
+        feedbackText.setTextSize(24);
+        feedbackText.setGravity(Gravity.CENTER);
+        feedbackText.setTypeface(feedbackText.getTypeface(), android.graphics.Typeface.BOLD);
+        LinearLayout.LayoutParams feedbackParams = matchWrapLayout();
+        feedbackParams.setMargins(0, dp(24), 0, 0);
+        root.addView(feedbackText, feedbackParams);
 
         return scrollView;
     }
 
-    private void updateStatusText() {
-        if (statusText == null) {
+    private void startQuiz() {
+        quizRunning = true;
+        correctCount = 0;
+        attemptedCount = 0;
+        startButton.setEnabled(false);
+        finishButton.setEnabled(true);
+        feedbackText.setText("Vai Michele!");
+        feedbackText.setTextColor(Color.rgb(30, 64, 175));
+        updateScore();
+        showNextQuestion();
+    }
+
+    private void finishQuiz() {
+        quizRunning = false;
+        startButton.setEnabled(true);
+        finishButton.setEnabled(false);
+        answerButtonsLayout.removeAllViews();
+        questionText.setText("Premi Start per giocare.");
+        feedbackText.setText("Hai finito! Bravo Michele!");
+        feedbackText.setTextColor(Color.rgb(30, 64, 175));
+        updateScore();
+    }
+
+    private void showStoppedState() {
+        quizRunning = false;
+        finishButton.setEnabled(false);
+        answerButtonsLayout.removeAllViews();
+        questionText.setText("Premi Start per giocare.");
+        feedbackText.setText("");
+        updateScore();
+    }
+
+    private void showNextQuestion() {
+        if (!quizRunning) {
             return;
         }
 
-        String reminderTime = ReminderScheduler.formatTime(
-                ReminderScheduler.getReminderHour(this),
-                ReminderScheduler.getReminderMinute(this)
-        );
-        String reminderInterval = ReminderScheduler.formatInterval(
-                ReminderScheduler.getReminderIntervalMinutes(this)
-        );
+        int left = randomBetween(2, 12);
+        int right = randomBetween(2, 12);
+        correctAnswer = left * right;
+        questionText.setText(left + " x " + right + " = ?");
 
-        if (!isNotificationPermissionGranted()) {
-            statusText.setText(String.format(
-                    Locale.getDefault(),
-                    "Math reminder starts at %s, then repeats every %s. If that time already passed today, the next reminder starts after one interval. Allow notifications so it can appear.",
-                    reminderTime,
-                    reminderInterval
-            ));
+        answerButtonsLayout.removeAllViews();
+        for (int answer : createAnswers(correctAnswer)) {
+            Button answerButton = new Button(this);
+            answerButton.setText(String.valueOf(answer));
+            answerButton.setTextSize(26);
+            answerButton.setAllCaps(false);
+            answerButton.setOnClickListener(view -> checkAnswer(answer));
+
+            LinearLayout.LayoutParams answerParams = matchWrapLayout();
+            answerParams.setMargins(0, 0, 0, dp(12));
+            answerButtonsLayout.addView(answerButton, answerParams);
+        }
+    }
+
+    private void checkAnswer(int selectedAnswer) {
+        if (!quizRunning) {
             return;
         }
 
-        statusText.setText(String.format(
-                Locale.getDefault(),
-                "Math reminder starts at %s, then repeats every %s. If that time already passed today, the next reminder starts after one interval. Your phone may show an alarm icon.",
-                reminderTime,
-                reminderInterval
-        ));
-    }
-
-    private void sendTestNotification() {
-        if (NotificationHelper.showMathReminder(this)) {
-            statusText.setText("Test math notification sent. Tap the notification to answer in the app.");
-        } else {
-            updateStatusText();
+        attemptedCount++;
+        if (selectedAnswer == correctAnswer) {
+            correctCount++;
+            feedbackText.setText("Bravo Michele! Risposta giusta!");
+            feedbackText.setTextColor(Color.rgb(22, 101, 52));
+            updateScore();
+            showNextQuestion();
+            return;
         }
+
+        feedbackText.setText("Riprova, puoi farcela!");
+        feedbackText.setTextColor(Color.rgb(185, 28, 28));
+        updateScore();
     }
 
-    private void requestNotificationPermissionIfNeeded() {
-        if (!isNotificationPermissionGranted()) {
-            requestPermissions(
-                    new String[]{Manifest.permission.POST_NOTIFICATIONS},
-                    NOTIFICATION_PERMISSION_REQUEST
-            );
-        }
-    }
+    private List<Integer> createAnswers(int correct) {
+        List<Integer> answers = new ArrayList<>();
+        answers.add(correct);
 
-    private boolean isNotificationPermissionGranted() {
-        return Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU
-                || checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED;
-    }
-
-    private RadioGroup createIntervalGroup() {
-        RadioGroup group = new RadioGroup(this);
-        group.setOrientation(RadioGroup.VERTICAL);
-        group.setGravity(Gravity.CENTER_HORIZONTAL);
-
-        int currentInterval = ReminderScheduler.getReminderIntervalMinutes(this);
-        for (int intervalMinutes : ReminderScheduler.INTERVAL_OPTIONS_MINUTES) {
-            RadioButton button = new RadioButton(this);
-            button.setId(intervalMinutes);
-            button.setText("Every " + ReminderScheduler.formatInterval(intervalMinutes));
-            button.setTextColor(Color.rgb(51, 65, 85));
-            button.setTextSize(16);
-            group.addView(button, new RadioGroup.LayoutParams(
-                    ViewGroup.LayoutParams.WRAP_CONTENT,
-                    ViewGroup.LayoutParams.WRAP_CONTENT
-            ));
-        }
-        group.check(currentInterval);
-
-        return group;
-    }
-
-    private int getSelectedIntervalMinutes() {
-        int checkedId = intervalGroup.getCheckedRadioButtonId();
-        for (int intervalMinutes : ReminderScheduler.INTERVAL_OPTIONS_MINUTES) {
-            if (checkedId == intervalMinutes) {
-                return intervalMinutes;
+        while (answers.size() < 3) {
+            int offset = randomBetween(1, 12);
+            int wrongAnswer = correct + (RANDOM.nextBoolean() ? offset : -offset);
+            if (wrongAnswer > 0 && !answers.contains(wrongAnswer)) {
+                answers.add(wrongAnswer);
             }
         }
 
-        return ReminderScheduler.DEFAULT_INTERVAL_MINUTES;
+        Collections.shuffle(answers, RANDOM);
+        return answers;
+    }
+
+    private void updateScore() {
+        scoreText.setText("Punti: " + correctCount + " / " + attemptedCount);
+    }
+
+    private int randomBetween(int min, int max) {
+        return min + RANDOM.nextInt(max - min + 1);
+    }
+
+    private LinearLayout.LayoutParams weightedButtonParams() {
+        return new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1);
     }
 
     private LinearLayout.LayoutParams matchWrapLayout() {
